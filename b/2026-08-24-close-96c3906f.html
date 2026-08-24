@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- 검색엔진에 잡히지 않게 한다. 공개 저장소를 쓰지만 남이 찾아올 이유는 없다. -->
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+
+<title>한국 주식 마감 브리핑 · 2026-08-24</title>
+
+<style>
+  /* ------------------------------------------------------------------
+     웹 페이지용 덧씌우기 스타일
+
+     카드 본체(template.html)는 900px 고정 폭으로 스크린샷을 찍기 위한 것이라
+     그대로는 폰에서 읽을 수 없다. 여기서 그 위에 세 가지를 얹는다.
+
+       1) 반응형   - 폭에 맞춰 접히는 그리드, 좁은 화면에서 공시 표 열 정리
+       2) 다크모드 - 폰 설정을 따라감 (텔레그램 내장 브라우저도 이를 전달한다)
+       3) 링크     - 뉴스 제목과 공시를 누르면 원문으로 이동
+
+     [중요] 카드 본체의 <style>은 이 블록보다 뒤(body 안)에 온다. 뒤에 온 CSS가
+     이기므로, 여기 선택자에는 전부 body / html:root 를 앞에 붙여 우선순위를
+     한 단계 올려 두었다. 그래야 본체 규칙을 확실히 덮어쓴다.
+  ------------------------------------------------------------------ */
+
+  /* ---- 1) 고정 폭 해제 ---- */
+  html { -webkit-text-size-adjust: 100%; }
+  html body {
+    width: auto;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0;
+  }
+  body .page { padding: 14px; gap: 12px; }
+
+  /* ---- 2) 다크모드 ---- */
+  @media (prefers-color-scheme: dark) {
+    html:root {
+      --up: #ff5c74;
+      --down: #6ea8ff;
+      --flat: #949aa6;
+      --ink: #e9ebf0;
+      --muted: #99a0ac;
+      --line: #2b3038;
+      --card: #1d2026;
+    }
+    html body { background: #14161b; }
+    body .quote { border-color: #2b3038; }
+    body .quote.focus { border-color: #3d4450; box-shadow: 0 0 0 1.5px #2f353e inset; }
+    body .quote-sym { color: #6d7481; }
+    body .quote-live { border-top-color: #2b3038; color: #a9b0bc; }
+    body .report { color: #d3d7de; }
+    body td { border-bottom-color: #23272e; }
+    body .news-item { border-bottom-color: #23272e; }
+    body .news-sum { color: #a9b0bc; }
+    body footer { color: #6d7481; }
+
+    body .mood.surge  { background: #3a2228; color: #ff7188; }
+    body .mood.up     { background: #3a2228; color: #ff5c74; }
+    body .mood.flat   { background: #272b33; color: #a4abb7; }
+    body .mood.down   { background: #1f2c42; color: #6ea8ff; }
+    body .mood.plunge { background: #1f2c42; color: #8bbaff; }
+
+    body .tag.Y { background: #3a2228; color: #ff7188; }
+    body .tag.K { background: #1f2c42; color: #6ea8ff; }
+    body .tag.N, body .tag.E { background: #272b33; color: #a4abb7; }
+
+    /* 차트 - 밝은 테마 값 그대로 두면 눈금선이 흰 줄로 튀고 선이 어두워 잘 안 보인다 */
+    body .c-up   { color: #ff5c74; }
+    body .c-down { color: #6ea8ff; }
+    body .c-grid { stroke: #2f353e; }
+    body .c-axis { fill: #858c98; }
+    body .chart-hint { color: #6d7481; }
+  }
+
+  /* ---- 3) 링크 ---- */
+  /* 카드 안에서는 색을 바꾸지 않는다. 원래 디자인을 해치지 않으면서
+     누를 수만 있게 하는 것이 목적이다. */
+  body a { color: inherit; text-decoration: none; }
+  body a:hover { text-decoration: underline; }
+  body a:focus-visible { outline: 2px solid var(--down); outline-offset: 2px; border-radius: 3px; }
+
+  /* 손가락으로 누르기 좋게 뉴스 제목의 세로 여백을 넉넉히 준다 */
+  body .news-title a { display: inline-block; padding: 1px 0; }
+
+  /* ---- 차트가 화면을 넘지 않게 ---- */
+  body svg { max-width: 100%; height: auto; display: block; }
+
+  /* ---- 4) 종목을 눌러 차트 바꾸기 ---- */
+  body .quote[data-chart] { cursor: pointer; user-select: none; }
+  body .quote[data-chart]:hover { border-color: #b9bfc9; }
+  body .quote[data-chart]:focus-visible { outline: 2px solid var(--down); outline-offset: 2px; }
+  body .quote[data-chart]:active { transform: scale(0.99); }
+  @media (prefers-color-scheme: dark) {
+    body .quote[data-chart]:hover { border-color: #4a515d; }
+  }
+  /* 지금 보고 있는 종목임을 확실히 드러낸다 */
+  body .quote[aria-pressed="true"] { border-color: var(--up); box-shadow: 0 0 0 1.5px var(--up) inset; }
+
+  body .chart-hint {
+    margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--line);
+    font-size: 12px; color: #a2a7b0; text-align: center;
+  }
+  /* 손가락이 없는 환경(마우스)에서는 안내 문구를 조금 다르게 */
+  @media (hover: hover) { body .chart-hint b { font-weight: 700; } }
+
+  /* ---- 반응형: 태블릿 ---- */
+  @media (max-width: 760px) {
+    body .page { padding: 10px; gap: 10px; }
+    body .card { padding: 17px 16px; border-radius: 14px; }
+    body .title { font-size: 22px; }
+    body .snap-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+    body .snap-value { font-size: 18px; }
+    body .sec-head { flex-direction: column; align-items: flex-start; gap: 3px; margin-bottom: 12px; }
+
+    /* 공시 표에서 덜 중요한 열(접수일·제출인)을 접는다.
+       가로 스크롤보다 이쪽이 읽기 편하다. 남기는 것: 구분 · 회사명 · 보고서명 */
+    body table th:nth-child(1), body table td:nth-child(1),
+    body table th:nth-child(5), body table td:nth-child(5) { display: none; }
+
+    /* 구분 칸은 내용만큼만 차지하게 해서 '코스닥' 태그가 두 줄로 쪼개지지 않게 한다 */
+    body table th:nth-child(2), body table td:nth-child(2) { width: 1%; }
+    body .tag { white-space: nowrap; min-width: 0; }
+
+    /* 회사명은 두 줄이 되더라도 보고서명 자리를 뺏지 않는 편이 낫다 */
+    body .corp { white-space: normal; }
+  }
+
+  /* ---- 반응형: 폰 ---- */
+  @media (max-width: 480px) {
+    body .quote-grid { grid-template-columns: 1fr; }
+    body .quote-price { font-size: 24px; }
+    body .snap-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    body .news-title { font-size: 14.5px; }
+    body .news-item { padding: 15px 0; }
+  }
+
+  /* ---- 맨 아래 안내 ---- */
+  body .page-note {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 2px 20px 26px;
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: #a2a7b0;
+    text-align: center;
+  }
+  @media (prefers-color-scheme: dark) { body .page-note { color: #6d7481; } }
+</style>
+</head>
+<body>
+<meta charset="utf-8">
+<style>
+  /* ---------------------------------------------------------------
+     브리핑 카드 스타일
+     - 상승은 빨강, 하락은 파랑 (한국 증시 관례)
+     - 폰트는 윈도우(맑은 고딕)와 리눅스(Noto CJK) 양쪽을 모두 적어둔다.
+       GitHub Actions의 우분투 러너에서도 한글이 깨지지 않게 하기 위해서다.
+  --------------------------------------------------------------- */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --up: #e5384f;
+    --down: #1e63d0;
+    --flat: #6b7280;
+    --ink: #16181d;
+    --muted: #8b909a;
+    --line: #e8eaee;
+    --card: #ffffff;
+  }
+
+  body {
+    width: 900px;
+    background: #eef0f4;
+    color: var(--ink);
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo",
+                 "Noto Sans KR", "Noto Sans CJK KR", "Nanum Gothic", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .page { padding: 26px; display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 22px 24px;
+  }
+
+  /* ---- 헤더 ---- */
+  .title { font-size: 27px; font-weight: 800; letter-spacing: -0.5px; }
+  .subtitle { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  .sec-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+  .sec-note { font-size: 12.5px; color: var(--muted); font-weight: 400; }
+  .sec-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 12px; margin-bottom: 16px;
+  }
+
+  /* ---- 시장 스냅샷 ---- */
+  .snap-grid { display: grid; grid-template-columns: 1.15fr 1fr 1fr 0.85fr; gap: 18px; }
+  .snap-label { font-size: 12px; color: var(--muted); margin-bottom: 7px; }
+  .snap-value { font-size: 20px; font-weight: 700; letter-spacing: -0.4px; white-space: nowrap; }
+  .snap-sub { font-size: 12.5px; margin-top: 5px; color: var(--muted); }
+
+  .mood {
+    display: inline-block; padding: 6px 15px; border-radius: 999px;
+    font-size: 16px; font-weight: 700;
+  }
+  .mood.surge  { background: #fdeaed; color: #d11c38; }
+  .mood.up     { background: #fdeaed; color: #e5384f; }
+  .mood.flat   { background: #f1f2f4; color: #5b6069; }
+  .mood.down   { background: #e8f0fd; color: #1e63d0; }
+  .mood.plunge { background: #e2ecfc; color: #14509f; }
+
+  .snap-foot {
+    margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 12.5px; color: var(--muted);
+  }
+
+  /* ---- 시세 카드 ---- */
+  .quote-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .quote {
+    border: 1px solid var(--line); border-radius: 13px;
+    padding: 15px 17px 14px;
+  }
+  .quote.focus { border-color: #c9ced6; box-shadow: 0 0 0 1.5px #dfe3e9 inset; }
+  .quote-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .quote-name { font-size: 14.5px; font-weight: 700; }
+  .quote-sym { font-size: 11px; color: #b2b7c0; }
+  .quote-price { font-size: 27px; font-weight: 800; margin: 8px 0 5px; letter-spacing: -0.8px; }
+  .quote-change { font-size: 13.5px; font-weight: 600; }
+  .quote-base { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+  .quote-live {
+    margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e9ebef;
+    font-size: 12px; color: #575c66;
+  }
+  .quote-err { font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+
+  .up   { color: var(--up); }
+  .down { color: var(--down); }
+  .flat { color: var(--flat); }
+
+  /* ---- 차트 색 ----
+     선·점·그라데이션은 모두 currentColor를 따르므로 color 하나만 바꾸면 함께 바뀐다.
+     웹페이지(page.html)에서 다크모드용으로 이 네 값을 덮어쓴다. */
+  .c-up   { color: #e5384f; }
+  .c-down { color: #1e63d0; }
+  .c-grid { stroke: #eef0f3; }
+  .c-axis { fill: #a8adb6; }
+
+  /* ---- 공시 표 ---- */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 11.5px; color: var(--muted); font-weight: 600; text-align: left;
+    padding: 0 8px 9px 0; border-bottom: 1px solid var(--line);
+  }
+  td { font-size: 12.5px; padding: 9px 8px 9px 0; border-bottom: 1px solid #f4f5f7; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+
+  .tag {
+    display: inline-block; min-width: 34px; text-align: center;
+    padding: 2px 7px; border-radius: 5px; font-size: 10.5px; font-weight: 700;
+  }
+  .tag.Y { background: #fdeaed; color: #d11c38; }
+  .tag.K { background: #e8f0fd; color: #1e63d0; }
+  .tag.N, .tag.E { background: #f1f2f4; color: #5b6069; }
+
+  .corp { font-weight: 700; white-space: nowrap; }
+  .report { color: #2c3038; }
+  .filer { color: var(--muted); white-space: nowrap; }
+
+  /* ---- 뉴스 ---- */
+  .news-item { padding: 13px 0; border-bottom: 1px solid #f4f5f7; }
+  .news-item:first-child { padding-top: 0; }
+  .news-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .news-title { font-size: 14px; font-weight: 700; line-height: 1.45; letter-spacing: -0.3px; }
+  .news-meta { font-size: 11.5px; color: var(--muted); margin-top: 5px; }
+  .news-sum { font-size: 12.5px; color: #5b6069; line-height: 1.55; margin-top: 6px; }
+
+  .empty { font-size: 13px; color: var(--muted); padding: 6px 0; line-height: 1.6; }
+
+  footer { font-size: 11.5px; color: #a2a7b0; text-align: center; padding: 4px 0 2px; }
+</style>
+
+<div class="page" id="card">
+<div style="padding:2px 4px 2px;">
+  <div class="title">한국 주식 마감 브리핑</div>
+  <div class="subtitle">2026년 8월 24일 (월) 16:19 발송 · 데이터 기준 2026년 8월 24일 (월) · 오늘 종가 기준</div>
+</div>
+<div class="card">
+  <div class="sec-head"><div class="sec-title">시장 스냅샷</div></div>
+  <div class="snap-grid">
+    <div>
+      <div class="snap-label">데이터 기준일 (KST)</div>
+      <div class="snap-value">2026년 8월 24일</div>
+      <div class="snap-sub">월요일 · 종가 확정</div>
+    </div>
+    <div>
+      <div class="snap-label">USD/KRW</div>
+      <div class="snap-value">₩1,383.28</div>
+      <div class="snap-sub"><span class="down">▼ -7.51 (-0.54%)</span></div>
+    </div>
+    <div>
+      <div class="snap-label">코스피 50일선 대비</div>
+      <div class="snap-value"><span class="down">-8.26%</span></div>
+      <div class="snap-sub">200일선 대비 <span class="up">+12.69%</span></div>
+    </div>
+    <div>
+      <div class="snap-label">오늘의 분위기</div>
+      <div><span class="mood plunge">급락</span></div>
+    </div>
+  </div>
+  <div class="snap-foot">코스피 6,696.96 (<span class="down">-3.12%</span>) · 50일선 7,299.59 · 200일선 5,942.64</div>
+</div>
+
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-title">주요 시세</div>
+    <div class="sec-note">종가 · 전일 대비 · 눌러서 차트 보기</div>
+  </div>
+  <div class="quote-grid"><div class="quote" data-chart="^KS11" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">코스피</div>
+  <div class="quote-sym">^KS11</div></div>
+  <div class="quote-price">6,696.96</div>
+  <div class="quote-change down">▼ -215.99 (-3.12%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote" data-chart="^KQ11" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">코스닥</div>
+  <div class="quote-sym">^KQ11</div></div>
+  <div class="quote-price">813.33</div>
+  <div class="quote-change up">▲ 11.39 (+1.42%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote" data-chart="005930.KS" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">삼성전자</div>
+  <div class="quote-sym">005930.KS</div></div>
+  <div class="quote-price">257,000</div>
+  <div class="quote-change down">▼ -24,500 (-8.70%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote" data-chart="000660.KS" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">SK하이닉스</div>
+  <div class="quote-sym">000660.KS</div></div>
+  <div class="quote-price">1,671,000</div>
+  <div class="quote-change down">▼ -59,000 (-3.41%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote" data-chart="035420.KS" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">네이버</div>
+  <div class="quote-sym">035420.KS</div></div>
+  <div class="quote-price">223,500</div>
+  <div class="quote-change up">▲ 1,500 (+0.68%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote" data-chart="035720.KS" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">카카오</div>
+  <div class="quote-sym">035720.KS</div></div>
+  <div class="quote-price">35,800</div>
+  <div class="quote-change flat">― 0 (+0.00%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote" data-chart="069500.KS" role="button" tabindex="0" aria-pressed="false">
+  <div class="quote-top"><div class="quote-name">KODEX 200</div>
+  <div class="quote-sym">069500.KS</div></div>
+  <div class="quote-price">105,995</div>
+  <div class="quote-change down">▼ -3,985 (-3.62%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div><div class="quote focus" data-chart="469150.KS" role="button" tabindex="0" aria-pressed="true">
+  <div class="quote-top"><div class="quote-name">ACE AI반도체TOP3+</div>
+  <div class="quote-sym">469150.KS</div></div>
+  <div class="quote-price">55,555</div>
+  <div class="quote-change down">▼ -2,220 (-3.84%)</div>
+  <div class="quote-base">8/24 종가 기준</div>
+  
+</div></div>
+</div>
+<div class="card" id="chart-card">
+  <div class="chart-panel" data-sym="^KS11" hidden><div class="sec-head">
+    <div class="sec-title">코스피 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="down">-0.87%</span> · 종가 6,696.96</div>
+  </div>
+  <svg class="c-down" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_down-0" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">5,000</text><line class="c-grid" x1="78" y1="164.4" x2="794" y2="164.4" stroke-width="1"/><text class="c-axis" x="69" y="168.4" text-anchor="end" font-size="10.5">5,500</text><line class="c-grid" x1="78" y1="126.8" x2="794" y2="126.8" stroke-width="1"/><text class="c-axis" x="69" y="130.8" text-anchor="end" font-size="10.5">6,000</text><line class="c-grid" x1="78" y1="89.2" x2="794" y2="89.2" stroke-width="1"/><text class="c-axis" x="69" y="93.2" text-anchor="end" font-size="10.5">6,500</text><line class="c-grid" x1="78" y1="51.6" x2="794" y2="51.6" stroke-width="1"/><text class="c-axis" x="69" y="55.6" text-anchor="end" font-size="10.5">7,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">7,500</text>
+  <path d="M 78.0,70.0 L 78.0,70.0 L 115.7,125.0 L 153.4,152.1 L 191.1,157.4 L 228.7,82.0 L 266.4,107.4 L 304.1,99.8 L 341.8,81.8 L 379.5,104.5 L 417.2,107.3 L 454.8,104.3 L 492.5,100.8 L 530.2,83.3 L 567.9,65.6 L 605.6,53.3 L 643.3,61.4 L 680.9,91.4 L 718.6,62.7 L 756.3,58.1 L 794.0,74.4 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_down-0)"/>
+  <polyline points="78.0,70.0 115.7,125.0 153.4,152.1 191.1,157.4 228.7,82.0 266.4,107.4 304.1,99.8 341.8,81.8 379.5,104.5 417.2,107.3 454.8,104.3 492.5,100.8 530.2,83.3 567.9,65.6 605.6,53.3 643.3,61.4 680.9,91.4 718.6,62.7 756.3,58.1 794.0,74.4" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="74.4" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="^KQ11" hidden><div class="sec-head">
+    <div class="sec-title">코스닥 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="up">+6.34%</span> · 종가 813.33</div>
+  </div>
+  <svg class="c-up" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_up-1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">600</text><line class="c-grid" x1="78" y1="139.3" x2="794" y2="139.3" stroke-width="1"/><text class="c-axis" x="69" y="143.3" text-anchor="end" font-size="10.5">700</text><line class="c-grid" x1="78" y1="76.7" x2="794" y2="76.7" stroke-width="1"/><text class="c-axis" x="69" y="80.7" text-anchor="end" font-size="10.5">800</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">900</text>
+  <path d="M 78.0,98.7 L 78.0,98.7 L 115.7,135.7 L 153.4,162.7 L 191.1,173.9 L 228.7,127.0 L 266.4,115.9 L 304.1,88.7 L 341.8,76.9 L 379.5,75.6 L 417.2,77.4 L 454.8,42.5 L 492.5,40.4 L 530.2,39.7 L 567.9,38.2 L 605.6,36.2 L 643.3,55.2 L 680.9,61.3 L 718.6,51.0 L 756.3,75.5 L 794.0,68.3 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_up-1)"/>
+  <polyline points="78.0,98.7 115.7,135.7 153.4,162.7 191.1,173.9 228.7,127.0 266.4,115.9 304.1,88.7 341.8,76.9 379.5,75.6 417.2,77.4 454.8,42.5 492.5,40.4 530.2,39.7 567.9,38.2 605.6,36.2 643.3,55.2 680.9,61.3 718.6,51.0 756.3,75.5 794.0,68.3" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="68.3" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="005930.KS" hidden><div class="sec-head">
+    <div class="sec-title">삼성전자 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="up">+1.18%</span> · 종가 257,000</div>
+  </div>
+  <svg class="c-up" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_up-2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">175,000</text><line class="c-grid" x1="78" y1="164.4" x2="794" y2="164.4" stroke-width="1"/><text class="c-axis" x="69" y="168.4" text-anchor="end" font-size="10.5">200,000</text><line class="c-grid" x1="78" y1="126.8" x2="794" y2="126.8" stroke-width="1"/><text class="c-axis" x="69" y="130.8" text-anchor="end" font-size="10.5">225,000</text><line class="c-grid" x1="78" y1="89.2" x2="794" y2="89.2" stroke-width="1"/><text class="c-axis" x="69" y="93.2" text-anchor="end" font-size="10.5">250,000</text><line class="c-grid" x1="78" y1="51.6" x2="794" y2="51.6" stroke-width="1"/><text class="c-axis" x="69" y="55.6" text-anchor="end" font-size="10.5">275,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">300,000</text>
+  <path d="M 78.0,83.2 L 78.0,83.2 L 115.7,134.3 L 153.4,151.6 L 191.1,153.9 L 228.7,70.4 L 266.4,105.0 L 304.1,104.2 L 341.8,95.2 L 379.5,118.5 L 417.2,117.8 L 454.8,119.3 L 492.5,105.0 L 530.2,80.9 L 567.9,62.1 L 605.6,52.4 L 643.3,61.4 L 680.9,93.0 L 718.6,57.6 L 756.3,41.8 L 794.0,78.7 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_up-2)"/>
+  <polyline points="78.0,83.2 115.7,134.3 153.4,151.6 191.1,153.9 228.7,70.4 266.4,105.0 304.1,104.2 341.8,95.2 379.5,118.5 417.2,117.8 454.8,119.3 492.5,105.0 530.2,80.9 567.9,62.1 605.6,52.4 643.3,61.4 680.9,93.0 718.6,57.6 756.3,41.8 794.0,78.7" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="78.7" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="000660.KS" hidden><div class="sec-head">
+    <div class="sec-title">SK하이닉스 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="down">-7.98%</span> · 종가 1,671,000</div>
+  </div>
+  <svg class="c-down" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_down-3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">1,200,000</text><line class="c-grid" x1="78" y1="155.0" x2="794" y2="155.0" stroke-width="1"/><text class="c-axis" x="69" y="159.0" text-anchor="end" font-size="10.5">1,400,000</text><line class="c-grid" x1="78" y1="108.0" x2="794" y2="108.0" stroke-width="1"/><text class="c-axis" x="69" y="112.0" text-anchor="end" font-size="10.5">1,600,000</text><line class="c-grid" x1="78" y1="61.0" x2="794" y2="61.0" stroke-width="1"/><text class="c-axis" x="69" y="65.0" text-anchor="end" font-size="10.5">1,800,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">2,000,000</text>
+  <path d="M 78.0,57.2 L 78.0,57.2 L 115.7,119.8 L 153.4,154.8 L 191.1,173.3 L 228.7,80.3 L 266.4,115.8 L 304.1,113.4 L 341.8,92.0 L 379.5,132.7 L 417.2,149.8 L 454.8,150.3 L 492.5,149.1 L 530.2,130.6 L 567.9,109.6 L 605.6,97.4 L 643.3,93.4 L 680.9,131.5 L 718.6,86.6 L 756.3,77.5 L 794.0,91.3 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_down-3)"/>
+  <polyline points="78.0,57.2 115.7,119.8 153.4,154.8 191.1,173.3 228.7,80.3 266.4,115.8 304.1,113.4 341.8,92.0 379.5,132.7 417.2,149.8 454.8,150.3 492.5,149.1 530.2,130.6 567.9,109.6 605.6,97.4 643.3,93.4 680.9,131.5 718.6,86.6 756.3,77.5 794.0,91.3" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="91.3" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="035420.KS" hidden><div class="sec-head">
+    <div class="sec-title">네이버 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="down">-0.67%</span> · 종가 223,500</div>
+  </div>
+  <svg class="c-down" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_down-4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">180,000</text><line class="c-grid" x1="78" y1="139.3" x2="794" y2="139.3" stroke-width="1"/><text class="c-axis" x="69" y="143.3" text-anchor="end" font-size="10.5">200,000</text><line class="c-grid" x1="78" y1="76.7" x2="794" y2="76.7" stroke-width="1"/><text class="c-axis" x="69" y="80.7" text-anchor="end" font-size="10.5">220,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">240,000</text>
+  <path d="M 78.0,61.0 L 78.0,61.0 L 115.7,108.0 L 153.4,134.6 L 191.1,155.9 L 228.7,114.3 L 266.4,115.8 L 304.1,56.3 L 341.8,48.5 L 379.5,57.9 L 417.2,108.0 L 454.8,103.3 L 492.5,95.5 L 530.2,90.8 L 567.9,56.3 L 605.6,51.6 L 643.3,86.1 L 680.9,114.3 L 718.6,78.2 L 756.3,70.4 L 794.0,65.7 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_down-4)"/>
+  <polyline points="78.0,61.0 115.7,108.0 153.4,134.6 191.1,155.9 228.7,114.3 266.4,115.8 304.1,56.3 341.8,48.5 379.5,57.9 417.2,108.0 454.8,103.3 492.5,95.5 530.2,90.8 567.9,56.3 605.6,51.6 643.3,86.1 680.9,114.3 718.6,78.2 756.3,70.4 794.0,65.7" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="65.7" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="035720.KS" hidden><div class="sec-head">
+    <div class="sec-title">카카오 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="down">-3.37%</span> · 종가 35,800</div>
+  </div>
+  <svg class="c-down" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_down-5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">34,000</text><line class="c-grid" x1="78" y1="155.0" x2="794" y2="155.0" stroke-width="1"/><text class="c-axis" x="69" y="159.0" text-anchor="end" font-size="10.5">36,000</text><line class="c-grid" x1="78" y1="108.0" x2="794" y2="108.0" stroke-width="1"/><text class="c-axis" x="69" y="112.0" text-anchor="end" font-size="10.5">38,000</text><line class="c-grid" x1="78" y1="61.0" x2="794" y2="61.0" stroke-width="1"/><text class="c-axis" x="69" y="65.0" text-anchor="end" font-size="10.5">40,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">42,000</text>
+  <path d="M 78.0,130.3 L 78.0,130.3 L 115.7,163.2 L 153.4,171.5 L 191.1,151.5 L 228.7,122.1 L 266.4,126.8 L 304.1,110.3 L 341.8,104.5 L 379.5,101.0 L 417.2,63.3 L 454.8,71.6 L 492.5,44.5 L 530.2,71.6 L 567.9,58.7 L 605.6,61.0 L 643.3,102.1 L 680.9,122.1 L 718.6,91.5 L 756.3,159.7 L 794.0,159.7 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_down-5)"/>
+  <polyline points="78.0,130.3 115.7,163.2 153.4,171.5 191.1,151.5 228.7,122.1 266.4,126.8 304.1,110.3 341.8,104.5 379.5,101.0 417.2,63.3 454.8,71.6 492.5,44.5 530.2,71.6 567.9,58.7 605.6,61.0 643.3,102.1 680.9,122.1 718.6,91.5 756.3,159.7 794.0,159.7" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="159.7" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="069500.KS" hidden><div class="sec-head">
+    <div class="sec-title">KODEX 200 · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="down">-1.61%</span> · 종가 105,995</div>
+  </div>
+  <svg class="c-down" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_down-6" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">80,000</text><line class="c-grid" x1="78" y1="155.0" x2="794" y2="155.0" stroke-width="1"/><text class="c-axis" x="69" y="159.0" text-anchor="end" font-size="10.5">90,000</text><line class="c-grid" x1="78" y1="108.0" x2="794" y2="108.0" stroke-width="1"/><text class="c-axis" x="69" y="112.0" text-anchor="end" font-size="10.5">100,000</text><line class="c-grid" x1="78" y1="61.0" x2="794" y2="61.0" stroke-width="1"/><text class="c-axis" x="69" y="65.0" text-anchor="end" font-size="10.5">110,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">120,000</text>
+  <path d="M 78.0,71.7 L 78.0,71.7 L 115.7,128.3 L 153.4,156.9 L 191.1,166.1 L 228.7,66.5 L 266.4,112.2 L 304.1,106.4 L 341.8,87.8 L 379.5,113.2 L 417.2,117.0 L 454.8,116.2 L 492.5,111.5 L 530.2,92.7 L 567.9,73.8 L 605.6,60.7 L 643.3,67.8 L 680.9,99.7 L 718.6,69.5 L 756.3,61.1 L 794.0,79.8 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_down-6)"/>
+  <polyline points="78.0,71.7 115.7,128.3 153.4,156.9 191.1,166.1 228.7,66.5 266.4,112.2 304.1,106.4 341.8,87.8 379.5,113.2 417.2,117.0 454.8,116.2 492.5,111.5 530.2,92.7 567.9,73.8 605.6,60.7 643.3,67.8 680.9,99.7 718.6,69.5 756.3,61.1 794.0,79.8" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="79.8" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div><div class="chart-panel" data-sym="469150.KS"><div class="sec-head">
+    <div class="sec-title">ACE AI반도체TOP3+ · 30일 가격</div>
+    <div class="sec-note">7/27 → 8/24 · <span class="down">-0.98%</span> · 종가 55,555</div>
+  </div>
+  <svg class="c-down" width="806" height="232" viewBox="0 0 806 232"
+     xmlns="http://www.w3.org/2000/svg" role="img">
+  <defs>
+    <linearGradient id="grad_down-7" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="currentColor" stop-opacity="0.26"/>
+      <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <line class="c-grid" x1="78" y1="202.0" x2="794" y2="202.0" stroke-width="1"/><text class="c-axis" x="69" y="206.0" text-anchor="end" font-size="10.5">40,000</text><line class="c-grid" x1="78" y1="164.4" x2="794" y2="164.4" stroke-width="1"/><text class="c-axis" x="69" y="168.4" text-anchor="end" font-size="10.5">45,000</text><line class="c-grid" x1="78" y1="126.8" x2="794" y2="126.8" stroke-width="1"/><text class="c-axis" x="69" y="130.8" text-anchor="end" font-size="10.5">50,000</text><line class="c-grid" x1="78" y1="89.2" x2="794" y2="89.2" stroke-width="1"/><text class="c-axis" x="69" y="93.2" text-anchor="end" font-size="10.5">55,000</text><line class="c-grid" x1="78" y1="51.6" x2="794" y2="51.6" stroke-width="1"/><text class="c-axis" x="69" y="55.6" text-anchor="end" font-size="10.5">60,000</text><line class="c-grid" x1="78" y1="14.0" x2="794" y2="14.0" stroke-width="1"/><text class="c-axis" x="69" y="18.0" text-anchor="end" font-size="10.5">65,000</text>
+  <path d="M 78.0,80.9 L 78.0,80.9 L 115.7,138.2 L 153.4,167.6 L 191.1,179.3 L 228.7,82.3 L 266.4,115.7 L 304.1,109.8 L 341.8,94.5 L 379.5,120.7 L 417.2,129.4 L 454.8,117.6 L 492.5,107.4 L 530.2,90.6 L 567.9,72.5 L 605.6,63.4 L 643.3,64.4 L 680.9,90.5 L 718.6,62.9 L 756.3,68.3 L 794.0,85.0 L 794.0,202.0 L 78.0,202.0 Z" fill="url(#grad_down-7)"/>
+  <polyline points="78.0,80.9 115.7,138.2 153.4,167.6 191.1,179.3 228.7,82.3 266.4,115.7 304.1,109.8 341.8,94.5 379.5,120.7 417.2,129.4 454.8,117.6 492.5,107.4 530.2,90.6 567.9,72.5 605.6,63.4 643.3,64.4 680.9,90.5 718.6,62.9 756.3,68.3 794.0,85.0" fill="none" stroke="currentColor" stroke-width="2.1"
+            stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="794.0" cy="85.0" r="3.6" fill="currentColor"/>
+  <text class="c-axis" x="78.0" y="223" text-anchor="middle" font-size="10.5">7/27</text><text class="c-axis" x="228.7" y="223" text-anchor="middle" font-size="10.5">7/31</text><text class="c-axis" x="379.5" y="223" text-anchor="middle" font-size="10.5">8/6</text><text class="c-axis" x="492.5" y="223" text-anchor="middle" font-size="10.5">8/11</text><text class="c-axis" x="643.3" y="223" text-anchor="middle" font-size="10.5">8/18</text><text class="c-axis" x="794.0" y="223" text-anchor="middle" font-size="10.5">8/24</text>
+</svg></div>
+  <div class="chart-hint">위 <b>주요 시세</b>에서 종목을 누르면 그 종목의 차트로 바뀝니다</div>
+</div>
+<div class="card">
+  <div class="sec-head"><div class="sec-title">DART 신규 공시</div><div class="sec-note">2026-08-24 접수 · 코스피 15건</div></div>
+  <table>
+    <thead><tr><th>접수일</th><th>구분</th><th>회사명</th><th>보고서명</th><th>제출인</th></tr></thead>
+    <tbody><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">인디에프</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800436" target="_blank" rel="noopener">최대주주등소유주식변동신고서</a></td>
+  <td class="filer">인디에프</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">한국토지신탁</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800418" target="_blank" rel="noopener">기업설명회(IR)개최(안내공시)</a></td>
+  <td class="filer">한국토지신탁</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">HD현대</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800403" target="_blank" rel="noopener">[기재정정]단일판매ㆍ공급계약체결(자회사의 주요경영사항)</a></td>
+  <td class="filer">HD현대</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">기아</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800400" target="_blank" rel="noopener">기업설명회(IR)개최(안내공시)</a></td>
+  <td class="filer">기아</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">대구백화점</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800396" target="_blank" rel="noopener">[기재정정]주주총회소집결의</a></td>
+  <td class="filer">대구백화점</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">HD한국조선해양</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800389" target="_blank" rel="noopener">[기재정정]단일판매ㆍ공급계약체결(자회사의 주요경영사항)</a></td>
+  <td class="filer">HD한국조선해양</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">LG생활건강</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800386" target="_blank" rel="noopener">타법인주식및출자증권처분결정(자율공시)(종속회사의주요경영사항)</a></td>
+  <td class="filer">LG생활건강</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">대영포장</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800379" target="_blank" rel="noopener">최대주주등소유주식변동신고서</a></td>
+  <td class="filer">대영포장</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">아모레퍼시픽</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800339" target="_blank" rel="noopener">기업설명회(IR)개최(안내공시)</a></td>
+  <td class="filer">아모레퍼시픽</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">진양화학</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800327" target="_blank" rel="noopener">최대주주등소유주식변동신고서</a></td>
+  <td class="filer">진양화학</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">유한양행</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800322" target="_blank" rel="noopener">공정거래자율준수프로그램운영현황(안내공시)</a></td>
+  <td class="filer">유한양행</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">범양건영</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800279" target="_blank" rel="noopener">[기재정정]회생절차개시결정</a></td>
+  <td class="filer">범양건영</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">형지엘리트</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800271" target="_blank" rel="noopener">주주총회소집결의</a></td>
+  <td class="filer">형지엘리트</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">HD현대</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800261" target="_blank" rel="noopener">풍문또는보도에대한해명(미확정)(자회사의 주요경영사항)</a></td>
+  <td class="filer">HD현대</td>
+</tr><tr>
+  <td class="filer">08-24</td>
+  <td><span class="tag Y">유가</span></td>
+  <td class="corp">한화리츠</td>
+  <td class="report"><a href="https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260824800258" target="_blank" rel="noopener">부동산투자회사자금차입</a></td>
+  <td class="filer">한화리츠</td>
+</tr></tbody>
+  </table>
+</div>
+<div class="card">
+  <div class="sec-head">
+    <div class="sec-title">코스피 시장 뉴스</div>
+    <div class="sec-note">구글뉴스 · 최신순 8건</div>
+  </div>
+  <div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMiiAFBVV95cUxNZHBYeXBsX0E4TndIVlV1RThCd1hrQ3l6dTRuYlV6T2pFNE1QSTk5QWd4blpmdHdKYnM1OFB4V3U0b09YQjZueEs1U2g5bzJwWmpxM1dfVG5ZbjR2VjVGUHZPNzJjTVFudGRIcUlmRXlnS3MtRU93LXVyXzFJSU1ha1Z3V0VzTnR5?oc=5" target="_blank" rel="noopener">코스피, 3% 하락에 6700선 아래로...삼전·하닉 8%·3% 급락</a></div>
+  <div class="news-meta">8/24 16:07 · 글로벌이코노믹</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMicEFVX3lxTE0wX0dKZUdyZndaSEEwemE0SGpBdi1sNUtMajJDQXd4RTlmaE9qTXRRdTZtTzhwVkFzeG9Ba0JBSENHMTFYOF9XNzBNd2NKSmV3UEFyaEcyR0MteDNqU3ZXMHZLME1Ba3lmdmZ1WWZJaE0?oc=5" target="_blank" rel="noopener">[마감시황] 코스피, 삼전·닉스 약세에 3%대 하락 마감…코스닥 1%대↑</a></div>
+  <div class="news-meta">8/24 16:06 · 신아일보</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMiYEFVX3lxTFBXazA3WmszaHVRdUpMUmFKY2ZHc0VSNER6ZHp0TTVEOGRoaThUS0Y0d051TUdHMjItTUdTUEtLNmpZcjRiZ2MtcjFCVWpJaW9yRVJZRjM4eWhxZktKTjhsOQ?oc=5" target="_blank" rel="noopener">코스피, 3%대 하락하며 6600선 마감…삼전 8% 넘게 급락</a></div>
+  <div class="news-meta">8/24 16:02 · 경기신문</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMiaEFVX3lxTE1vMnJWRjExMWkxa1JEaTZxbDVjV1JqUjg2Qmc2dXJDMjJ1OU0xQWpqTGV0dTFOeXVScnZzRGQ1eWFNN0k5eF9CV0dtNlQyYTJwN1ZxenZReUNOZHl2UVIweFI1Z3BReFNv0gFuQVVfeXFMT0tXY2wyOEtQbFh2eTRuVG9VU0JQaFVUZEpkZFd3WF9YQkNMcGE1VHZrTGk5SkQ2cFpmTmxqZ0JQcUFKZHc1dXNWRWhzbUpkSlRDX2dwMTlYN180Tm9DVG1ac1VneFlNWEozVVBhcUE?oc=5" target="_blank" rel="noopener">금리·관세에 코스피 숨 고르기…개인 나홀로 지수방어</a></div>
+  <div class="news-meta">8/24 15:59 · 머니투데이</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMicEFVX3lxTFBRVVd2S3J3ME1mSFdNV04zVGFkM05NdGRPWEZDUEFWQk1qMXV5MGowMzdZTG5CWmZaZE1xdHk3eTNYai1kSEZ0LUYzZGdwdGJoaDZJN1kwSElFY0t3dVM0cURqS1pVa1MwZktkdlRnTnY?oc=5" target="_blank" rel="noopener">[증시-마감] 코스피, 삼전닉스 급락에 6,600선 후퇴…외인 3조원대 순매도</a></div>
+  <div class="news-meta">8/24 15:54 · 연합인포맥스</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMibkFVX3lxTE1nemYxUGR0U1Z1OHpIQ0hBdWVhRHEySDc2cDN1R01HbU5rdEdNb3NDQ3JiVktkTWhYUG96cU02UUR2SE5OeTRUSTNwZTZDSWFoNkJ6eEUxd19velN4Q1g4bm1vTzk3ZG5zZzM4THlR?oc=5" target="_blank" rel="noopener">주주환원 무색,삼전·닉스 동반 하락...코스피 3.1%↓ 6,600선</a></div>
+  <div class="news-meta">8/24 15:53 · 서울이코노미뉴스</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMiT0FVX3lxTE8zcE1MSTFRc3dfNGNDR3RVMFR0bXM0TVk2Zml1QW5EM2hJMlh6cEZkMjl2cVBYZDFfVmE4aXZrR3JvV3JSYVZKSW9rdjNnbEE?oc=5" target="_blank" rel="noopener">[그래픽] 코스피·코스닥 추이</a></div>
+  <div class="news-meta">8/24 15:46 · v.daum.net</div>
+  
+</div><div class="news-item">
+  <div class="news-title"><a href="https://news.google.com/rss/articles/CBMiTEFVX3lxTE5YSC15bFVGeDNLclllQVRFUVMzc1BjM2k1d0hXRkpEdk02VDlQUWgtRzZJTFEtbzNMWWtxS29tUlBtR2hHVHJDOU50TWg?oc=5" target="_blank" rel="noopener">[속보] 코스피 3% 하락 마감, 삼성전자 한때 9% 넘게 떨어져···코스닥은 1.42% 상승</a></div>
+  <div class="news-meta">8/24 15:44 · 대구MBC</div>
+  
+</div>
+</div>
+<footer>2026-08-24 16:19 KST 생성 · 시세 Yahoo Finance · 공시 DART · 투자 판단의 근거로 삼지 마세요</footer>
+</div>
+
+<div class="page-note">
+  이 페이지는 2026-08-24 16:19 KST 시점의 기록입니다 · 자동 생성 · 투자 판단의 근거로 삼지 마세요
+</div>
+
+<script>
+/* 종목 카드를 누르면 그 종목의 차트로 바꾼다.
+
+   차트는 이미 종목마다 한 장씩 그려져 hidden 상태로 들어 있다. 여기서는 어느 것을
+   보여줄지 고르기만 하므로, 그리는 규칙이 파이썬과 자바스크립트 두 곳으로 갈라지지 않는다. */
+(function () {
+  var cards = document.querySelectorAll(".quote[data-chart]");
+  var panels = document.querySelectorAll(".chart-panel");
+  if (!cards.length || !panels.length) return;
+
+  function show(symbol) {
+    var found = false;
+    panels.forEach(function (panel) {
+      var match = panel.dataset.sym === symbol;
+      panel.hidden = !match;
+      if (match) found = true;
+    });
+    if (!found) return;
+
+    cards.forEach(function (card) {
+      var on = card.dataset.chart === symbol;
+      card.setAttribute("aria-pressed", on ? "true" : "false");
+      card.classList.toggle("focus", on);
+    });
+  }
+
+  cards.forEach(function (card) {
+    card.addEventListener("click", function () { show(card.dataset.chart); });
+    card.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+        e.preventDefault();
+        show(card.dataset.chart);
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
